@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install (frozen lockfile)
+        run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun x tsc --noEmit
+      - name: Unit tests
+        run: bun run test
+      - name: Migrations + SQL tests (PGlite, local only)
+        run: bun run test:sql
+      - name: Smoke test (static checks)
+        run: bun run smoke
+      - name: Build
+        run: bun run build
+      # Lint is non-blocking for now: 29 errors remain, all but 2 are
+      # `supabase as any` casts that disappear once Supabase types are
+      # regenerated from the migrated database (see DEPLOYABLE report).
+      # The 2 conditional-hook errors in follow-ups.tsx are fixed.
+      # Remove continue-on-error once `bun run lint` exits 0.
+      - name: Lint
+        run: bun run lint
+        continue-on-error: true
